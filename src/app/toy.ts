@@ -61,7 +61,8 @@ const KEYBOARD_PRESS_MS = 90;
  * чтобы клавиатура осталась у игры.
  */
 export class ToyPanel {
-  private readonly buttons = new Map<ToyKeyId, HTMLElement>();
+  /** Кнопки корпуса и их дубли в пульте (`bindRemote`): подсвечиваются вместе, чтобы при виде «только экран» было видно нажатие с клавиатуры и геймпада. */
+  private readonly buttons = new Map<ToyKeyId, HTMLElement[]>();
   private readonly lit = new Set<ToyKeyId>();
   /** Подсветка от указателей и горячих клавиш (ON/OFF, SOUND). */
   private readonly extra = new Map<ToyKeyId, number>();
@@ -74,7 +75,7 @@ export class ToyPanel {
     for (const id of TOY_KEY_IDS) {
       const button = root.querySelector<HTMLElement>(`[data-key="${id}"]`);
       if (!button) continue;
-      this.buttons.set(id, button);
+      this.buttons.set(id, [button]);
       this.bind(id, button);
     }
   }
@@ -90,6 +91,8 @@ export class ToyPanel {
         button.addEventListener('click', () => this.hooks.onReset?.());
       } else if (id === 'onoff' || id === 'sp') {
         this.bind(id, button);
+        this.buttons.set(id, [...(this.buttons.get(id) ?? []), button]);
+        if (this.lit.has(id)) button.dataset['pressed'] = '';
         button.addEventListener('click', (event) => {
           if (event.detail !== 0) return; // мышь и палец уже отработали в pointerdown
           if (id === 'onoff') this.hooks.onPower();
@@ -106,15 +109,14 @@ export class ToyPanel {
   sync(down: ActionMask): void {
     const wanted = pressedKeys(down, this.hooks.keyActions);
     for (const id of this.extra.keys()) wanted.add(id);
-    for (const [id, button] of this.buttons) {
+    for (const [id, buttons] of this.buttons) {
       const on = wanted.has(id);
       if (on === this.lit.has(id)) continue;
-      if (on) {
-        this.lit.add(id);
-        button.dataset['pressed'] = '';
-      } else {
-        this.lit.delete(id);
-        delete button.dataset['pressed'];
+      if (on) this.lit.add(id);
+      else this.lit.delete(id);
+      for (const button of buttons) {
+        if (on) button.dataset['pressed'] = '';
+        else delete button.dataset['pressed'];
       }
     }
   }

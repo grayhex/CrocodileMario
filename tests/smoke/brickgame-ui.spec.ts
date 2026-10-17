@@ -26,7 +26,9 @@ test('сайт без параметра открывает универсаль
   await open(page, '');
   await expect(page.locator('#toy')).toHaveAttribute('data-model', 'brickgame');
   await expect(page.locator('.toysw__universal')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('h1')).toHaveText('Brick Game'); // заголовок страницы следует за открытой игрушкой
   await page.locator('.toysw__item[data-toy=mario]').click();
+  await expect(page.locator('h1')).toHaveText('Crocodile Mario');
   await expect(page).toHaveURL(/\?toy=mario$/);
   await expect(page.locator('.toysw__item[data-toy=mario]')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('#toy')).not.toHaveAttribute('data-model', 'brickgame');
@@ -164,4 +166,15 @@ test('«Сегменты экрана»: на кнопке «Вкл» яркие
   expect(Number(await dim.evaluate((node) => getComputedStyle(node).opacity))).toBeLessThan(0.5);
   await page.locator('.segments__choice:has([value=off])').click();
   expect(await lit.evaluate((node) => getComputedStyle(node).filter)).toBe('none');
+});
+
+test('пульт: дубли кнопок подсвечиваются при нажатии с клавиатуры, пока видны только экран и пульт', async ({ page }) => {
+  await open(page, '?toy=brickgame&view=screen&power=on');
+  await expect.poll(() => area(page, 'boot')).toBe('off');
+  const start = page.locator('[data-remote=sp]');
+  await expect(start).not.toHaveAttribute('data-pressed', '');
+  await page.keyboard.down('Enter'); // S./P.
+  await expect(start).toHaveAttribute('data-pressed', '');
+  await page.keyboard.up('Enter');
+  await expect(start).not.toHaveAttribute('data-pressed', '');
 });

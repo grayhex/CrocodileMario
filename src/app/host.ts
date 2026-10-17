@@ -55,7 +55,10 @@ export async function startHost(initial: ToyId): Promise<void> {
     document.title = TOYS.mario.name;
   };
 
+  /** Заголовок страницы — название открытой игрушки (а не всегда «Crocodile Mario»): так его читают скринридеры и индексаторы. */
+  const heading = document.querySelector('h1');
   const mount = (id: ToyId, carry?: Carry): Promise<AppHandle> => {
+    if (heading) heading.textContent = TOYS[id].name;
     if (id === 'alibaba' || id === 'minibrick') return import('./exhibitApp').then(({startExhibitApp}) => startExhibitApp(id, carry));
     return engineOf(TOYS[id]) === 'tetris' ? startTetrisApp(id, carry) : startApp('room', carry);
   };
